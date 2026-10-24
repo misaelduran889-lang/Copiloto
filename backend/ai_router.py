@@ -19,7 +19,7 @@ from . import security
 DEFAULT_MODELS = {
     "claude": "claude-sonnet-4-5",
     "openai": "gpt-4o-mini",
-    "gemini": "gemini-2.0-flash",
+    "gemini": "gemini-3.8-flash",
     "grok": "grok-2-latest",
     "ollama": "llama3.1",
 }
