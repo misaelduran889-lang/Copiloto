@@ -121,13 +121,31 @@ class OverlayService : Service() {
         val root = FrameLayout(this)
         root.setBackgroundColor(Color.parseColor("#F00B0F1A"))
 
-        val header = TextView(this)
-        header.text = "✦ Copiloto          ✕ cerrar"
-        header.setTextColor(Color.WHITE)
-        header.textSize = 14f
-        header.setPadding(dp(14), dp(12), dp(14), dp(12))
+        // Barra superior: título (se arrastra) + botón cerrar a la derecha.
+        val bar = android.widget.LinearLayout(this)
+        bar.orientation = android.widget.LinearLayout.HORIZONTAL
+        bar.gravity = Gravity.CENTER_VERTICAL
+
+        val title = TextView(this)
+        title.text = "✦ Copiloto"
+        title.setTextColor(Color.WHITE)
+        title.textSize = 14f
+        title.setPadding(dp(14), dp(12), dp(10), dp(12))
+        val titleLp = android.widget.LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f)
+        bar.addView(title, titleLp)
+
+        val closeBtn = TextView(this)
+        closeBtn.text = "✕"
+        closeBtn.setTextColor(Color.WHITE)
+        closeBtn.textSize = 18f
+        closeBtn.gravity = Gravity.CENTER
+        closeBtn.setPadding(dp(18), dp(12), dp(18), dp(12))
+        bar.addView(closeBtn, android.widget.LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+        closeBtn.setOnClickListener { closePanel() }
+
         root.addView(
-            header,
+            bar,
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
         )
 
@@ -138,7 +156,7 @@ class OverlayService : Service() {
         val wlp = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
         )
-        wlp.topMargin = dp(46)
+        wlp.topMargin = dp(48)
         root.addView(web, wlp)
 
         panelParams = WindowManager.LayoutParams(
@@ -149,22 +167,16 @@ class OverlayService : Service() {
         panelParams.gravity = Gravity.TOP or Gravity.START
         panelParams.x = dp(16); panelParams.y = dp(80)
 
-        var downX = 0f; var downY = 0f; var px = 0; var py = 0; var moved = false
-        header.setOnTouchListener { _, e ->
+        var downX = 0f; var downY = 0f; var px = 0; var py = 0
+        title.setOnTouchListener { _, e ->
             when (e.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    downX = e.rawX; downY = e.rawY; px = panelParams.x; py = panelParams.y; moved = false; true
+                    downX = e.rawX; downY = e.rawY; px = panelParams.x; py = panelParams.y; true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    val dx = (e.rawX - downX).toInt(); val dy = (e.rawY - downY).toInt()
-                    if (abs(dx) > 10 || abs(dy) > 10) moved = true
-                    panelParams.x = px + dx; panelParams.y = py + dy
+                    panelParams.x = px + (e.rawX - downX).toInt()
+                    panelParams.y = py + (e.rawY - downY).toInt()
                     wm.updateViewLayout(root, panelParams); true
-                }
-                MotionEvent.ACTION_UP -> {
-                    // tocar la zona derecha del header = cerrar
-                    if (!moved && e.x > root.width - dp(110)) closePanel()
-                    true
                 }
                 else -> false
             }
