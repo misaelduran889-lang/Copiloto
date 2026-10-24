@@ -3,6 +3,12 @@ name: Build Copiloto
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'backend/**'
+      - 'ui/**'
+      - 'launcher_float.py'
+      - 'launcher.py'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 
 permissions:

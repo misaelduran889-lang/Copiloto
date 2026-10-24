@@ -1,0 +1,3 @@
+<resources>
+    <style name="Theme.Copiloto" parent="Theme.AppCompat.DayNight.NoActionBar" />
+</resources>

@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Copiloto</title>
+<link rel="manifest" href="manifest.json" />
+<meta name="theme-color" content="#0b0f1a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Copiloto" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<style>
+:root{
+  --bg:#0b0f1a; --bg2:#121829; --glass:rgba(255,255,255,.06); --glass2:rgba(255,255,255,.1);
+  --border:rgba(255,255,255,.12); --text:#e9edf6; --muted:#9aa4bd; --accent:#6c8cff;
+  --accent2:#9b6cff; --ok:#37d399; --warn:#ffb020; --bad:#ff6b81; --radius:16px;
+  --shadow:0 8px 30px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:-apple-system,"Segoe UI",Roboto,system-ui,sans-serif;color:var(--text);
+  background:radial-gradient(1000px 600px at 10% -10%,#1d2a54 0,transparent 55%),
+             radial-gradient(900px 500px at 110% 10%,#3a1d54 0,transparent 50%),var(--bg);
+  overflow:hidden;
+}
+#app{display:flex;height:100vh;height:100dvh}
+/* Sidebar */
+#sidebar{width:230px;flex-shrink:0;background:var(--glass);backdrop-filter:blur(18px);
+  border-right:1px solid var(--border);display:flex;flex-direction:column;padding:18px 12px;gap:6px}
+.brand{display:flex;align-items:center;gap:10px;padding:6px 10px 16px}
+.logo{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:grid;place-items:center;font-size:18px;box-shadow:var(--shadow)}
+.brand-name{font-weight:700;font-size:18px;letter-spacing:.3px}
+.nav-btn{text-align:left;border:none;background:transparent;color:var(--muted);padding:11px 14px;
+  border-radius:12px;cursor:pointer;font-size:14.5px;transition:.15s;font-weight:500}
+.nav-btn:hover{background:var(--glass);color:var(--text)}
+.nav-btn.active{background:var(--glass2);color:var(--text)}
+.nav-spacer{flex:1}
+#install-btn{display:none;border:1px solid var(--accent);color:var(--text);background:rgba(108,140,255,.12);
+  padding:10px;border-radius:12px;cursor:pointer;font-size:13.5px;font-weight:600}
+.pill{font-size:12px;color:var(--muted);text-align:center;padding:7px;border:1px solid var(--border);border-radius:10px;margin-top:6px}
+.pill.ok{color:var(--ok);border-color:rgba(55,211,153,.4)}
+/* Main */
+#main{flex:1;overflow:hidden;position:relative}
+.view{display:none;height:100%;overflow-y:auto;padding:26px 32px;flex-direction:column}
+.view.active{display:flex}
+.view-head h1{font-size:23px;font-weight:700}
+.view-head .sub{color:var(--muted);margin-top:6px;font-size:14px;max-width:640px}
+/* Chat */
+.mode-row{margin:16px 0 10px}
+.switch{display:inline-flex;align-items:center;gap:8px;font-size:13.5px;color:var(--muted);cursor:pointer}
+.switch input{width:36px;height:20px;appearance:none;background:var(--glass2);border-radius:20px;position:relative;
+  cursor:pointer;border:1px solid var(--border)}
+.switch input::after{content:"";position:absolute;width:14px;height:14px;border-radius:50%;background:var(--muted);top:2px;left:3px;transition:.18s}
+.switch input:checked{background:linear-gradient(135deg,var(--accent),var(--accent2))}
+.switch input:checked::after{left:19px;background:#fff}
+.chat-log{flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:14px;padding:8px 0 16px}
+.msg{max-width:760px;padding:13px 16px;border-radius:14px;line-height:1.55;font-size:14.5px;white-space:pre-wrap;word-wrap:break-word}
+.msg.user{align-self:flex-end;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border-bottom-right-radius:4px}
+.msg.ai{align-self:flex-start;background:var(--glass);border:1px solid var(--border);border-bottom-left-radius:4px}
+.msg.ai .src{display:block;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-size:12.5px;color:var(--muted)}
+.msg.ai .src a{color:var(--accent);text-decoration:none;margin-top:4px}
+.msg.ai .src a:hover{text-decoration:underline}
+.composer{display:flex;gap:8px;align-items:flex-end;padding-top:10px;border-top:1px solid var(--border)}
+textarea,input,select{font-family:inherit}
+.composer textarea,.ctrls input,.card input,.card select,select,#cards-doc,#practice-topic,.ctrls select{
+  flex:1;resize:none;background:var(--glass);border:1px solid var(--border);color:var(--text);
+  border-radius:12px;padding:12px 14px;font-size:14.5px;max-height:160px}
+textarea:focus,input:focus,select:focus{outline:none;border-color:var(--accent)}
+button.primary{background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;border:none;
+  padding:12px 20px;border-radius:12px;font-weight:600;cursor:pointer;font-size:14px;white-space:nowrap}
+button.primary:hover{filter:brightness(1.08)}
+.mic{background:var(--glass2);border:1px solid var(--border);color:var(--text);border-radius:12px;padding:12px 14px;cursor:pointer;font-size:16px}
+.mic.rec{background:var(--bad);border-color:var(--bad)}
+/* Listas */
+.dropzone{display:block;margin:18px 0;padding:30px;text-align:center;color:var(--muted);
+  border:1.5px dashed var(--border);border-radius:var(--radius);cursor:pointer;background:var(--glass);transition:.15s}
+.dropzone:hover{border-color:var(--accent);color:var(--text)}
+.list{display:flex;flex-direction:column;gap:10px}
+.item{background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:14px 16px;
+  display:flex;justify-content:space-between;align-items:center;gap:10px}
+.item .meta{color:var(--muted);font-size:12.5px;margin-top:3px}
+.item .title{font-weight:600;font-size:14.5px}
+.icon-btn{background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:9px;padding:7px 10px;cursor:pointer}
+.icon-btn:hover{color:var(--bad);border-color:var(--bad)}
+/* Práctica */
+.ctrls{display:flex;gap:8px;margin:16px 0;flex-wrap:wrap}
+.qbox{background:var(--glass2);border:1px solid var(--border);border-left:3px solid var(--accent);
+  border-radius:12px;padding:16px;font-size:15.5px;margin:10px 0}
+.fb{margin-top:16px;display:flex;flex-direction:column;gap:10px}
+.score{font-size:30px;font-weight:800;color:var(--ok)}
+.fbcard{background:var(--glass);border:1px solid var(--border);border-radius:12px;padding:14px 16px;white-space:pre-wrap;line-height:1.55;font-size:14.5px}
+/* Flashcards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px;margin-top:18px}
+.fc{height:160px;perspective:1000px;cursor:pointer}
+.fc-in{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
+.fc.flip .fc-in{transform:rotateY(180deg)}
+.fc-face{position:absolute;inset:0;backface-visibility:hidden;border-radius:14px;padding:16px;display:grid;
+  place-items:center;text-align:center;font-size:14px;line-height:1.45;border:1px solid var(--border);background:var(--glass)}
+.fc-back{transform:rotateY(180deg);background:var(--glass2)}
+.fc-face .tag{position:absolute;top:8px;left:12px;font-size:10.5px;color:var(--muted);letter-spacing:.5px}
+/* Ajustes */
+.card{background:var(--glass);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin:12px 0}
+.card label{display:block;font-size:13px;color:var(--muted);margin-bottom:8px}
+.keyrow{display:flex;gap:8px;align-items:center}
+.keyrow input{flex:1}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.dot.on{background:var(--ok)}
+.mini{margin-top:8px}
+.hint{color:var(--muted);font-size:13px;margin-top:12px;line-height:1.5}
+.hidden{display:none!important}
+.typing{color:var(--muted);font-style:italic}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--bg2);
+  border:1px solid var(--border);padding:12px 20px;border-radius:12px;opacity:0;transition:.25s;box-shadow:var(--shadow);
+  font-size:14px;pointer-events:none;z-index:50;max-width:90vw;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+::-webkit-scrollbar{width:9px}
+::-webkit-scrollbar-thumb{background:var(--glass2);border-radius:10px}
+@media(max-width:760px){
+  body{overflow:auto}
+  #app{flex-direction:column;height:auto;min-height:100dvh}
+  #sidebar{width:100%;flex-direction:row;overflow-x:auto;padding:10px;gap:4px;border-right:none;
+    border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10}
+  .brand{padding:4px 8px}
+  .brand-name,.nav-btn .lbl{display:none}
+  .nav-btn{font-size:18px;padding:10px 12px}
+  .nav-spacer,#install-btn,.pill{display:none}
+  #main{height:auto}
+  .view{height:auto;padding:18px 16px}
+  .chat-log{min-height:46vh}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <nav id="sidebar">
+    <div class="brand"><div class="logo">✦</div><div class="brand-name">Copiloto</div></div>
+    <button class="nav-btn active" data-view="chat">💬 <span class="lbl">Copiloto</span></button>
+    <button class="nav-btn" data-view="docs">📄 <span class="lbl">Documentos</span></button>
+    <button class="nav-btn" data-view="practice">🎤 <span class="lbl">Práctica</span></button>
+    <button class="nav-btn" data-view="cards">🗂️ <span class="lbl">Flashcards</span></button>
+    <button class="nav-btn" data-view="history">🕘 <span class="lbl">Historial</span></button>
+    <button class="nav-btn" data-view="settings">⚙️ <span class="lbl">Ajustes</span></button>
+    <div class="nav-spacer"></div>
+    <button id="install-btn">⬇️ Instalar app</button>
+    <div id="provider-pill" class="pill">Sin clave</div>
+  </nav>
+
+  <main id="main">
+    <!-- CHAT -->
+    <section class="view active" id="view-chat">
+      <div class="view-head"><h1>Tu copiloto de estudio</h1>
+        <p class="sub">Pregúntame lo que sea: conceptos, cómo hacer un ensayo, pasos de un trabajo… te explico como un profesor.</p></div>
+      <div class="mode-row">
+        <label class="switch"><input type="checkbox" id="use-docs" /><span>📄 Mis documentos</span></label>
+        <label class="switch" style="margin-left:14px"><input type="checkbox" id="use-web" checked /><span>🌐 Buscar en la web (gratis, sin clave)</span></label>
+      </div>
+      <div id="chat-log" class="chat-log"></div>
+      <div class="composer">
+        <textarea id="chat-input" rows="1" placeholder="Escribe tu pregunta…"></textarea>
+        <button class="mic" id="mic-btn" title="Hablar">🎙️</button>
+        <button class="primary" id="send-btn">Enviar</button>
+      </div>
+    </section>
+
+    <!-- DOCS -->
+    <section class="view" id="view-docs">
+      <div class="view-head"><h1>Documentos</h1>
+        <p class="sub">Sube tus PDFs o notas de clase. El copiloto responderá basándose en ellos y citará la fuente. Todo queda en tu dispositivo.</p></div>
+      <label class="dropzone" id="dropzone">
+        <input type="file" id="file-input" accept=".pdf,.txt,.md" hidden />
+        <span>➕ Toca o arrastra para subir (PDF, TXT)</span>
+      </label>
+      <div id="doc-list" class="list"></div>
+    </section>
+
+    <!-- PRACTICE -->
+    <section class="view" id="view-practice">
+      <div class="view-head"><h1>Práctica de exposición / entrevista</h1>
+        <p class="sub">Responde por texto o voz. Recibes puntuación y consejos sobre claridad, orden, muletillas y contenido.</p></div>
+      <div class="ctrls">
+        <input id="practice-topic" placeholder="Tema (ej: ¿Qué es el espacio aéreo controlado?)" />
+        <button class="primary" id="practice-start">Nueva pregunta</button>
+      </div>
+      <div id="practice-q" class="qbox hidden"></div>
+      <div class="composer" id="practice-composer" style="display:none">
+        <textarea id="practice-input" rows="2" placeholder="Escribe o dicta tu respuesta…"></textarea>
+        <button class="mic" id="practice-mic" title="Hablar">🎙️</button>
+        <button class="primary" id="practice-send">Evaluar</button>
+      </div>
+      <div id="practice-fb" class="fb"></div>
+    </section>
+
+    <!-- CARDS -->
+    <section class="view" id="view-cards">
+      <div class="view-head"><h1>Flashcards</h1>
+        <p class="sub">Genera tarjetas desde tus documentos y repásalas tocando para voltear.</p></div>
+      <div class="ctrls">
+        <select id="cards-doc"></select>
+        <button class="primary" id="cards-gen">Generar</button>
+      </div>
+      <div id="cards-area" class="cards"></div>
+    </section>
+
+    <!-- HISTORY -->
+    <section class="view" id="view-history">
+      <div class="view-head"><h1>Historial</h1><p class="sub">Tus sesiones, guardadas en este dispositivo.</p></div>
+      <div id="history-list" class="list"></div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section class="view" id="view-settings">
+      <div class="view-head"><h1>Ajustes</h1>
+        <p class="sub">Elige tu IA y pega tu clave. Se guarda en tu navegador, en este dispositivo. La app llama directo a la IA; la clave no pasa por ningún servidor mío.</p></div>
+      <div class="card">
+        <label>IA por defecto</label>
+        <select id="default-provider">
+          <option value="gemini">Gemini (Google) — tiene plan gratis</option>
+          <option value="claude">Claude (Anthropic)</option>
+          <option value="openai">ChatGPT (OpenAI)</option>
+          <option value="grok">Grok (xAI)</option>
+          <option value="ollama">Ollama (local, gratis)</option>
+        </select>
+      </div>
+      <div id="keys"></div>
+      <div class="card">
+        <label>URL de Ollama (si usas modelo local)</label>
+        <input id="ollama-url" placeholder="http://127.0.0.1:11434" />
+      </div>
+      <button class="primary" id="save-settings">Guardar ajustes</button>
+      <button class="icon-btn" id="clear-all" style="margin-left:8px">Borrar todos mis datos</button>
+      <p class="hint" id="settings-hint"></p>
+    </section>
+  </main>
+</div>
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+/* ============================================================
+   Copiloto — todo corre en el navegador (sin servidor).
+   ============================================================ */
+const $=(s)=>document.querySelector(s), $$=(s)=>document.querySelectorAll(s);
+const toast=(m)=>{const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800)};
+const LS={
+  get:(k,d)=>{try{return JSON.parse(localStorage.getItem("copiloto_"+k))??d}catch{return d}},
+  set:(k,v)=>{try{localStorage.setItem("copiloto_"+k,JSON.stringify(v))}catch{}},
+};
+
+const PROVIDERS=[
+  {id:"gemini",name:"Gemini (Google)",model:"gemini-2.0-flash",help:"aistudio.google.com"},
+  {id:"claude",name:"Claude (Anthropic)",model:"claude-sonnet-4-5",help:"console.anthropic.com"},
+  {id:"openai",name:"ChatGPT (OpenAI)",model:"gpt-4o-mini",help:"platform.openai.com"},
+  {id:"grok",name:"Grok (xAI)",model:"grok-2-latest",help:"console.x.ai"},
+];
+const DEFAULT_MODELS={gemini:"gemini-2.0-flash",claude:"claude-sonnet-4-5",openai:"gpt-4o-mini",grok:"grok-2-latest",ollama:"llama3.1"};
+
+let STATE={chat:[]};
+
+/* ---------- Personalidad (prompts) ---------- */
+const TUTOR=`Eres Copiloto, el asistente de estudio de un estudiante de Administración Aeronáutica en República Dominicana. Hablas SIEMPRE en español claro y cercano. Tu meta es que COMPRENDA, como un profesor excelente y paciente.
+- Explica paso a paso. Si piden "cómo hacer X", da pasos numerados concretos.
+- Usa ejemplos sencillos, de preferencia aeronáuticos.
+- No inventes datos; si no estás seguro, dilo y di cómo verificarlo.
+- Sé directo y útil, sin relleno. Termina invitando a la siguiente duda.`;
+const DOCS=TUTOR+`
+Ahora respondes APOYÁNDOTE en los fragmentos de los documentos del usuario que te paso. Prioriza esa información. Al final añade SIEMPRE una línea:
+📌 Fuente: [ARCHIVO] (pág. [N])
+Si los fragmentos no responden la pregunta, dilo y responde con tu conocimiento general.`;
+const INTERVIEW=`Eres un entrenador de comunicación oral. Ayudas a practicar entrevistas y exposiciones en español para perder el pánico escénico. Analiza la respuesta y devuelve EXACTAMENTE:
+PUNTUACIÓN: N/100
+CLARIDAD: una frase.
+ORDEN: una frase.
+MULETILLAS: las que notes (o 'ninguna').
+CONTENIDO: una frase sobre si respondió lo preguntado.
+CONSEJO: un consejo concreto.
+SIGUIENTE PREGUNTA: una nueva pregunta para seguir practicando.
+Sé honesto pero motivador.`;
+const WEB=TUTOR+`
+Ahora tienes RESULTADOS DE BÚSQUEDA WEB (de Wikipedia). Responde apoyándote en ellos, con tus palabras. Al final añade SIEMPRE:
+🔎 Fuentes:
+- [Título] (enlace)
+Si no alcanzan, dilo y complementa con tu conocimiento general.`;
+const SYS={tutor:TUTOR,docs:DOCS,interview:INTERVIEW,web:WEB};
+
+/* Búsqueda web gratis desde el navegador (Wikipedia soporta CORS con origin=*) */
+async function searchWeb(query,max=3){
+  const q=query.replace(/[¿?¡!]/g,"").trim();if(!q)return{results:[]};
+  try{
+    const sUrl=`https://es.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(q)}&format=json&utf8=1&srlimit=${max}&origin=*`;
+    const sData=await (await fetch(sUrl)).json();
+    const items=sData?.query?.search||[];if(!items.length)return{results:[]};
+    const titles=items.map(i=>i.title).join("|");
+    const eUrl=`https://es.wikipedia.org/w/api.php?action=query&prop=extracts&exintro=1&explaintext=1&redirects=1&format=json&utf8=1&titles=${encodeURIComponent(titles)}&origin=*`;
+    const eData=await (await fetch(eUrl)).json();
+    const pages=Object.values(eData?.query?.pages||{});
+    const results=items.map(it=>{
+      const pg=pages.find(p=>p.title===it.title);
+      const extract=(pg?.extract||it.snippet.replace(/<[^>]+>/g,"")).slice(0,700);
+      return{title:it.title,url:`https://es.wikipedia.org/wiki/${encodeURIComponent(it.title.replace(/ /g,"_"))}`,snippet:extract};
+    });
+    if(results.length && results[0].snippet.length>40) return{results};
+    const ddg=await searchDDG(q); // respaldo si Wikipedia trae poco
+    return ddg.results.length?ddg:{results};
+  }catch(e){ return await searchDDG(query); }
+}
+// Respaldo: respuesta instantánea de DuckDuckGo (permite CORS, sin clave).
+async function searchDDG(query){
+  const q=query.replace(/[¿?¡!]/g,"").trim();if(!q)return{results:[]};
+  try{
+    const url=`https://api.duckduckgo.com/?q=${encodeURIComponent(q)}&format=json&no_html=1&skip_disambig=1`;
+    const d=await (await fetch(url)).json();
+    const results=[];
+    if(d.AbstractText) results.push({title:d.Heading||q,url:d.AbstractURL||("https://duckduckgo.com/?q="+encodeURIComponent(q)),snippet:d.AbstractText});
+    (d.RelatedTopics||[]).forEach(rt=>{
+      if(rt.Text && rt.FirstURL && results.length<4) results.push({title:(rt.Text.split(" - ")[0]||rt.Text).slice(0,80),url:rt.FirstURL,snippet:rt.Text});
+    });
+    return{results};
+  }catch(e){return{results:[]}}
+}
+
+/* ---------- Config / claves ---------- */
+const cfg=()=>LS.get("cfg",{provider:"gemini",models:{},ollama_url:"http://127.0.0.1:11434"});
+const keys=()=>LS.get("keys",{});
+const modelFor=(p)=>cfg().models?.[p]||DEFAULT_MODELS[p];
+const aiReady=()=>{const k=keys();const p=cfg().provider;return p==="ollama"||!!k[p]};
+
+/* ---------- Router de IA (llamadas directas desde el navegador) ---------- */
+async function callAI(system,messages,provider){
+  provider=provider||cfg().provider;
+  const k=keys();
+  if(provider==="claude"){
+    if(!k.claude) throw new Error("Falta la clave de Claude (⚙️ Ajustes).");
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",
+      headers:{"content-type":"application/json","x-api-key":k.claude,"anthropic-version":"2023-06-01","anthropic-dangerous-direct-browser-access":"true"},
+      body:JSON.stringify({model:modelFor("claude"),max_tokens:1500,system,messages})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(apiErr("Claude",r.status,d.error?.message));
+    return (d.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
+  }
+  if(provider==="gemini"){
+    if(!k.gemini) throw new Error("Falta la clave de Gemini (⚙️ Ajustes).");
+    const contents=messages.map(m=>({role:m.role==="assistant"?"model":"user",parts:[{text:m.content}]}));
+    const body={system_instruction:{parts:[{text:system}]},contents,generationConfig:{temperature:0.8,maxOutputTokens:1500}};
+    const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(modelFor("gemini"))}:generateContent?key=${encodeURIComponent(k.gemini)}`,
+      {method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify(body)});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(apiErr("Gemini",r.status,d.error?.message));
+    return (d.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");
+  }
+  if(provider==="openai"||provider==="grok"){
+    const key=k[provider];
+    if(!key) throw new Error(`Falta la clave de ${provider} (⚙️ Ajustes).`);
+    const base=provider==="openai"?"https://api.openai.com/v1":"https://api.x.ai/v1";
+    const r=await fetch(base+"/chat/completions",{method:"POST",
+      headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},
+      body:JSON.stringify({model:modelFor(provider),max_tokens:1500,messages:[{role:"system",content:system},...messages]})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(apiErr(provider,r.status,d.error?.message));
+    return d.choices?.[0]?.message?.content||"";
+  }
+  if(provider==="ollama"){
+    const r=await fetch((cfg().ollama_url||"http://127.0.0.1:11434")+"/api/chat",{method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({model:modelFor("ollama"),stream:false,messages:[{role:"system",content:system},...messages]})});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error("No se pudo conectar con Ollama. ¿Está corriendo?");
+    return d.message?.content||"";
+  }
+  throw new Error("Proveedor desconocido");
+}
+function apiErr(name,status,msg){
+  if(status===401||status===403) return `La clave de ${name} no es válida o sin permiso. Revísala en ⚙️ Ajustes.`;
+  if(status===429) return `Límite o sin saldo en ${name}. Espera un momento o revisa tu cuenta.`;
+  return msg?`${name}: ${msg}`:`Error ${status} con ${name}.`;
+}
+
+/* ---------- Documentos + RAG (en el navegador) ---------- */
+let DOCS_INDEX=LS.get("docs_index",[]);   // [{filename,page,text}]
+let DOCS_META=LS.get("docs_meta",[]);      // [{filename,pages,chars}]
+const RELEVANCE=0.16;
+
+function saveDocs(){LS.set("docs_index",DOCS_INDEX);LS.set("docs_meta",DOCS_META)}
+function chunkText(t){t=t.replace(/\s+/g," ").trim();const out=[];let i=0;while(i<t.length){out.push(t.slice(i,i+600));i+=500}return out}
+
+async function readFileToPages(file){
+  const ext=file.name.toLowerCase().split(".").pop();
+  if(ext==="txt"||ext==="md"){return [await file.text()]}
+  if(ext==="pdf"){
+    const pdfjs=window.pdfjsLib;
+    if(!pdfjs) throw new Error("No cargó el lector de PDF (revisa tu internet).");
+    pdfjs.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+    const buf=await file.arrayBuffer();
+    const pdf=await pdfjs.getDocument({data:buf}).promise;
+    const pages=[];
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const tc=await page.getTextContent();
+      pages.push(tc.items.map(it=>it.str).join(" "));
+    }
+    return pages;
+  }
+  throw new Error("Formato no soportado: "+ext);
+}
+function addDocument(filename,pages){
+  DOCS_INDEX=DOCS_INDEX.filter(c=>c.filename!==filename);
+  let chars=0;
+  pages.forEach((txt,i)=>chunkText(txt).forEach(c=>{chars+=c.length;DOCS_INDEX.push({filename,page:i+1,text:c})}));
+  DOCS_META=DOCS_META.filter(d=>d.filename!==filename);
+  DOCS_META.unshift({filename,pages:pages.length,chars});
+  saveDocs();
+  return {pages:pages.length,chars};
+}
+function removeDocument(filename){DOCS_INDEX=DOCS_INDEX.filter(c=>c.filename!==filename);DOCS_META=DOCS_META.filter(d=>d.filename!==filename);saveDocs()}
+// búsqueda difusa simple por coincidencia de palabras
+function tokenize(s){return (s.toLowerCase().match(/[a-záéíóúñü0-9]{3,}/gi)||[])}
+function searchDocs(query,topK=4){
+  if(!DOCS_INDEX.length) return {relevant:false,chunks:[]};
+  const q=new Set(tokenize(query));
+  if(!q.size) return {relevant:false,chunks:[]};
+  const scored=DOCS_INDEX.map(c=>{
+    const toks=tokenize(c.text);let hit=0;const seen=new Set();
+    for(const t of toks){if(q.has(t)&&!seen.has(t)){hit++;seen.add(t)}}
+    return {score:hit/q.size,c};
+  }).sort((a,b)=>b.score-a.score).slice(0,topK);
+  const best=scored[0]?.score||0;
+  return {relevant:best>=RELEVANCE,chunks:scored.map(s=>({...s.c,score:+s.score.toFixed(2)}))};
+}
+
+/* ---------- Historial ---------- */
+function addHistory(mode,q,a){const h=LS.get("history",[]);h.unshift({id:Date.now(),ts:Date.now(),mode,title:q.slice(0,60),question:q,answer:a});LS.set("history",h.slice(0,100))}
+
+/* ---------- Navegación ---------- */
+$$(".nav-btn").forEach(b=>b.addEventListener("click",()=>{
+  $$(".nav-btn").forEach(x=>x.classList.remove("active"));
+  $$(".view").forEach(v=>v.classList.remove("active"));
+  b.classList.add("active");
+  const v=b.dataset.view;$("#view-"+v).classList.add("active");
+  if(v==="docs")renderDocs(); if(v==="history")renderHistory(); if(v==="cards")renderCardDocs();
+}));
+
+/* ---------- Chat ---------- */
+const chatInput=$("#chat-input");
+chatInput.addEventListener("input",()=>{chatInput.style.height="auto";chatInput.style.height=Math.min(chatInput.scrollHeight,160)+"px"});
+chatInput.addEventListener("keydown",e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendChat()}});
+$("#send-btn").addEventListener("click",sendChat);
+$("#use-docs").addEventListener("change",()=>{if($("#use-docs").checked)$("#use-web").checked=false});
+$("#use-web").addEventListener("change",()=>{if($("#use-web").checked)$("#use-docs").checked=false});
+function addMsg(role,text){const d=document.createElement("div");d.className="msg "+role;d.textContent=text;$("#chat-log").appendChild(d);$("#chat-log").scrollTop=$("#chat-log").scrollHeight;return d}
+// Pinta las fuentes como ENLACES que se pueden tocar, debajo de la respuesta.
+function addSources(bubble, results, label){
+  if(!results||!results.length)return;
+  const box=document.createElement("div");box.className="src";
+  box.appendChild(document.createTextNode((label||"🔎 Fuentes")+":"));
+  results.forEach(r=>{
+    const a=document.createElement("a");a.href=r.url;a.target="_blank";a.rel="noopener";
+    a.textContent="• "+r.title;a.style.display="block";
+    box.appendChild(a);
+  });
+  bubble.appendChild(box);
+  $("#chat-log").scrollTop=$("#chat-log").scrollHeight;
+}
+async function sendChat(){
+  const q=chatInput.value.trim();if(!q)return;
+  chatInput.value="";chatInput.style.height="auto";
+  addMsg("user",q);STATE.chat.push({role:"user",content:q});
+  const t=addMsg("ai","…");t.classList.add("typing");
+  const hasAI=aiReady();
+  const wantDocs=$("#use-docs").checked;
+  // Sin clave de IA, o con "Buscar en la web" activo -> camino de BÚSQUEDA (gratis, sin API).
+  const wantWeb=$("#use-web").checked || (!hasAI && !wantDocs);
+
+  try{
+    // --- DOCUMENTOS ---
+    if(wantDocs){
+      const rag=searchDocs(q);
+      if(rag.relevant && rag.chunks.length){
+        if(hasAI){
+          const ctx=rag.chunks.map(c=>`[${c.filename} · pág. ${c.page}]\n${c.text}`).join("\n\n");
+          const txt=await callAI(SYS.docs,[...STATE.chat.slice(-8,-1),{role:"user",content:`FRAGMENTOS DE MIS DOCUMENTOS:\n${ctx}\n\nPREGUNTA:\n${q}`}]);
+          t.classList.remove("typing");t.textContent=txt;
+          const c=rag.chunks[0];const s=document.createElement("div");s.className="src";s.textContent=`📌 Basado en tus documentos (${c.filename}, pág. ${c.page})`;t.appendChild(s);
+          STATE.chat.push({role:"assistant",content:txt});addHistory("docs",q,txt);
+        }else{
+          // keyless: devuelve el fragmento más parecido tal cual
+          const c=rag.chunks[0];
+          t.classList.remove("typing");t.textContent="Esto es lo que encontré en tu documento:\n\n"+c.text;
+          const s=document.createElement("div");s.className="src";s.textContent=`📌 ${c.filename} (pág. ${c.page})`;t.appendChild(s);
+          addHistory("docs",q,t.textContent);
+        }
+        return;
+      } // si no hay relación, sigue a web/tutor
+    }
+
+    // --- BÚSQUEDA WEB (gratis, con fuentes) ---
+    if(wantWeb){
+      t.textContent="Buscando en la web…";
+      const web=await searchWeb(q);
+      if(web.results.length){
+        if(hasAI){
+          const ctx=web.results.map((r,i)=>`[${i+1}] ${r.title}\n${r.snippet}\nEnlace: ${r.url}`).join("\n\n");
+          const txt=await callAI(SYS.web,[...STATE.chat.slice(-8,-1),{role:"user",content:`RESULTADOS DE BÚSQUEDA WEB:\n${ctx}\n\nPREGUNTA:\n${q}`}]);
+          t.classList.remove("typing");t.textContent=txt;
+          addSources(t,web.results);
+          STATE.chat.push({role:"assistant",content:txt});addHistory("web",q,txt);
+        }else{
+          // keyless: te paso el resumen que encontré + las fuentes como enlaces
+          t.classList.remove("typing");
+          t.textContent=web.results[0].snippet;
+          addSources(t,web.results,"🔎 Fuentes (toca para verificar)");
+          addHistory("web",q,web.results[0].snippet);
+        }
+        return;
+      }else{
+        t.classList.remove("typing");
+        t.textContent= hasAI ? "No encontré nada en la web; te respondo con lo que sé:" : "No encontré resultados en la web para eso. Prueba con otras palabras.";
+        if(!hasAI){addHistory("web",q,t.textContent);return;}
+      }
+    }
+
+    // --- TUTOR (solo con IA) ---
+    if(hasAI){
+      const txt=await callAI(SYS.tutor,[...STATE.chat.slice(-8,-1),{role:"user",content:q}]);
+      t.classList.remove("typing");t.textContent=txt;
+      STATE.chat.push({role:"assistant",content:txt});addHistory("tutor",q,txt);
+    }else{
+      t.classList.remove("typing");
+      t.textContent="Para conversar con una IA, pon tu clave en ⚙️ Ajustes (o usa Ollama). Mientras tanto puedo buscarte información en la web: activa 🌐 Buscar en la web.";
+    }
+  }catch(e){t.classList.remove("typing");t.textContent="⚠️ "+e.message}
+}
+
+/* ---------- Documentos UI ---------- */
+const dz=$("#dropzone"),fi=$("#file-input");
+dz.addEventListener("click",()=>fi.click());
+dz.addEventListener("dragover",e=>{e.preventDefault();dz.style.borderColor="var(--accent)"});
+dz.addEventListener("dragleave",()=>dz.style.borderColor="");
+dz.addEventListener("drop",e=>{e.preventDefault();dz.style.borderColor="";if(e.dataTransfer.files[0])handleUpload(e.dataTransfer.files[0])});
+fi.addEventListener("change",()=>{if(fi.files[0])handleUpload(fi.files[0])});
+async function handleUpload(file){
+  toast("Leyendo "+file.name+"…");
+  try{const pages=await readFileToPages(file);const info=addDocument(file.name,pages);toast(`✓ ${file.name} (${info.pages} págs)`);renderDocs()}
+  catch(e){toast("⚠️ "+e.message)}
+}
+function renderDocs(){
+  const l=$("#doc-list");l.innerHTML=DOCS_META.length?"":'<p class="hint">Aún no has subido documentos.</p>';
+  DOCS_META.forEach(d=>{
+    const el=document.createElement("div");el.className="item";
+    el.innerHTML=`<div><div class="title">📄 ${d.filename}</div><div class="meta">${d.pages} págs · ${(d.chars/1000).toFixed(1)}k caracteres</div></div>`;
+    const b=document.createElement("button");b.className="icon-btn";b.textContent="Eliminar";b.onclick=()=>{removeDocument(d.filename);renderDocs()};
+    el.appendChild(b);l.appendChild(el);
+  });
+}
+
+/* ---------- Práctica ---------- */
+$("#practice-start").addEventListener("click",async()=>{
+  if(!aiReady()){toast("Primero pon tu clave en ⚙️ Ajustes");return}
+  const topic=$("#practice-topic").value.trim()||"cultura general aeronáutica";
+  const box=$("#practice-q");box.classList.remove("hidden");box.textContent="Generando pregunta…";
+  try{const txt=await callAI(TUTOR,[{role:"user",content:`Hazme UNA sola pregunta de entrevista/examen sobre: ${topic}. Devuelve solo la pregunta.`}]);
+    box.textContent="🎤 "+txt.trim();$("#practice-composer").style.display="flex";$("#practice-fb").innerHTML="";
+  }catch(e){box.textContent="⚠️ "+e.message}
+});
+$("#practice-send").addEventListener("click",async()=>{
+  const ans=$("#practice-input").value.trim();if(!ans)return;
+  const q=$("#practice-q").textContent.replace("🎤 ","");
+  const fb=$("#practice-fb");fb.innerHTML='<div class="fbcard typing">Evaluando…</div>';
+  try{const txt=await callAI(INTERVIEW,[{role:"user",content:`PREGUNTA: ${q}\nMI RESPUESTA: ${ans}`}]);
+    const m=txt.match(/PUNTUACIÓN:\s*(\d+)/i);fb.innerHTML="";
+    if(m){const r=document.createElement("div");r.className="score";r.textContent=m[1]+" / 100";fb.appendChild(r)}
+    const c=document.createElement("div");c.className="fbcard";c.textContent=txt;fb.appendChild(c);
+    addHistory("practica",q,txt);$("#practice-input").value="";
+  }catch(e){fb.innerHTML='<div class="fbcard">⚠️ '+e.message+'</div>'}
+});
+
+/* ---------- Flashcards ---------- */
+function renderCardDocs(){const s=$("#cards-doc");s.innerHTML=DOCS_META.map(d=>`<option>${d.filename}</option>`).join("")||'<option value="">(sube un documento)</option>'}
+$("#cards-gen").addEventListener("click",async()=>{
+  if(!aiReady()){toast("Primero pon tu clave en ⚙️ Ajustes");return}
+  const fn=$("#cards-doc").value;if(!fn){toast("Sube un documento primero");return}
+  const area=$("#cards-area");area.innerHTML='<p class="hint typing">Generando flashcards…</p>';
+  const ctx=DOCS_INDEX.filter(c=>c.filename===fn).slice(0,6).map(c=>c.text).join("\n\n");
+  try{
+    const txt=await callAI(TUTOR,[{role:"user",content:`A partir de este material, crea 8 flashcards (pregunta y respuesta) para memorizar lo esencial. Devuelve SOLO líneas con el formato:\nP: <pregunta>\nR: <respuesta>\n\nMATERIAL:\n${ctx}`}]);
+    const cards=[];let q=null;txt.split("\n").forEach(line=>{const s=line.trim();if(/^P:/i.test(s))q=s.slice(2).trim();else if(/^R:/i.test(s)&&q){cards.push({q,a:s.slice(2).trim()});q=null}});
+    area.innerHTML="";if(!cards.length){area.innerHTML='<p class="hint">No se pudieron generar.</p>';return}
+    cards.forEach(c=>{const d=document.createElement("div");d.className="fc";
+      d.innerHTML=`<div class="fc-in"><div class="fc-face"><span class="tag">PREGUNTA</span>${c.q}</div><div class="fc-face fc-back"><span class="tag">RESPUESTA</span>${c.a}</div></div>`;
+      d.onclick=()=>d.classList.toggle("flip");area.appendChild(d)});
+  }catch(e){area.innerHTML='<p class="hint">⚠️ '+e.message+'</p>'}
+});
+
+/* ---------- Historial ---------- */
+function renderHistory(){
+  const h=LS.get("history",[]);const l=$("#history-list");
+  l.innerHTML=h.length?"":'<p class="hint">Aún no hay sesiones.</p>';
+  h.forEach(it=>{
+    const el=document.createElement("div");el.className="item";
+    el.innerHTML=`<div style="cursor:pointer;flex:1"><div class="title">${it.title}</div><div class="meta">${it.mode} · ${new Date(it.ts).toLocaleString("es-DO")}</div></div>`;
+    el.querySelector("div").onclick=()=>{$$(".nav-btn")[0].click();$("#chat-log").innerHTML="";STATE.chat=[];addMsg("user",it.question);addMsg("ai",it.answer)};
+    const del=document.createElement("button");del.className="icon-btn";del.textContent="✕";del.onclick=()=>{LS.set("history",LS.get("history",[]).filter(x=>x.id!==it.id));renderHistory()};
+    el.appendChild(del);l.appendChild(el);
+  });
+}
+
+/* ---------- Ajustes ---------- */
+function renderKeys(){
+  const c=$("#keys");c.innerHTML="";const k=keys(),m=cfg().models||{};
+  PROVIDERS.forEach(p=>{
+    const has=!!k[p.id];const model=m[p.id]||p.model;
+    const card=document.createElement("div");card.className="card";
+    card.innerHTML=`<label>${p.name} — clave API <span style="color:var(--muted)">(${p.help})</span></label>
+      <div class="keyrow"><span class="dot ${has?"on":""}"></span>
+      <input type="password" data-key="${p.id}" placeholder="${has?"•••• guardada (vacío = conservar)":"Pega tu clave aquí"}" /></div>
+      <input class="mini" data-model="${p.id}" value="${model}" placeholder="modelo" />`;
+    c.appendChild(card);
+  });
+}
+$("#save-settings").addEventListener("click",()=>{
+  const k=keys();
+  $$("[data-key]").forEach(i=>{if(i.value.trim())k[i.dataset.key]=i.value.trim()});
+  const models={};$$("[data-model]").forEach(i=>models[i.dataset.model]=i.value.trim());
+  LS.set("keys",k);
+  LS.set("cfg",{provider:$("#default-provider").value,models,ollama_url:$("#ollama-url").value.trim()||"http://127.0.0.1:11434"});
+  toast("✓ Ajustes guardados");refreshStatus();
+});
+$("#clear-all").addEventListener("click",()=>{
+  if(confirm("¿Borrar TODO (claves, documentos, historial) de este dispositivo?")){
+    Object.keys(localStorage).filter(x=>x.startsWith("copiloto_")).forEach(x=>localStorage.removeItem(x));
+    DOCS_INDEX=[];DOCS_META=[];STATE.chat=[];location.reload();
+  }
+});
+function refreshStatus(){
+  const c=cfg(),k=keys();
+  $("#default-provider").value=c.provider||"gemini";
+  $("#ollama-url").value=c.ollama_url||"http://127.0.0.1:11434";
+  renderKeys();
+  const any=PROVIDERS.some(p=>k[p.id])||c.provider==="ollama";
+  const pill=$("#provider-pill");
+  if(any){pill.textContent="IA: "+(c.provider||"gemini");pill.classList.add("ok")}else{pill.textContent="Sin clave";pill.classList.remove("ok")}
+}
+
+/* ---------- Voz ---------- */
+function setupMic(btnSel,targetSel){
+  const btn=$(btnSel),SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){btn.style.display="none";return}
+  const rec=new SR();rec.lang="es-ES";rec.continuous=false;rec.interimResults=true;let on=false;
+  btn.addEventListener("click",()=>{on?rec.stop():rec.start()});
+  rec.onstart=()=>{on=true;btn.classList.add("rec")};
+  rec.onend=()=>{on=false;btn.classList.remove("rec")};
+  rec.onresult=e=>{let t="";for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;$(targetSel).value=t};
+}
+
+/* ---------- Instalación PWA ---------- */
+let deferredPrompt=null;
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;$("#install-btn").style.display="block"});
+$("#install-btn").addEventListener("click",async()=>{
+  if(!deferredPrompt){toast("Usa el menú del navegador → Instalar / Agregar a pantalla de inicio");return}
+  deferredPrompt.prompt();await deferredPrompt.userChoice;deferredPrompt=null;$("#install-btn").style.display="none";
+});
+window.addEventListener("appinstalled",()=>toast("✓ Copiloto instalado"));
+
+/* ---------- PWA: usa archivos reales (manifest.json + sw.js) ---------- */
+(function setupPWA(){
+  if("serviceWorker" in navigator && location.protocol!=="file:"){
+    navigator.serviceWorker.register("sw.js").catch(()=>{});
+  }
+})();
+
+/* ---------- Inicio ---------- */
+setupMic("#mic-btn","#chat-input");setupMic("#practice-mic","#practice-input");
+refreshStatus();
+if(!aiReady()){addMsg("ai","¡Hola Kevin! 👋 Soy tu Copiloto. Funciono GRATIS sin clave: pregúntame lo que sea y busco la información en la web, te la paso, y abajo te dejo la fuente con un enlace para que entres y verifiques.\n\nSi algún día quieres que además converse y explique como profesor, puedes poner una clave de IA (Gemini es gratis) o usar Ollama en ⚙️ Ajustes. Pero no hace falta para empezar.")}
+</script>
+</body>
+</html>
