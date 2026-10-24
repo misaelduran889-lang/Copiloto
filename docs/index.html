@@ -244,9 +244,11 @@ button.primary:hover{filter:brightness(1.08)}
    ============================================================ */
 const $=(s)=>document.querySelector(s), $$=(s)=>document.querySelectorAll(s);
 const toast=(m)=>{const t=$("#toast");t.textContent=m;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2800)};
+// Almacenamiento: usa el nativo de Android (a prueba de fallos) si existe; si no, localStorage.
+const AS=window.AndroidStore||null;
 const LS={
-  get:(k,d)=>{try{return JSON.parse(localStorage.getItem("copiloto_"+k))??d}catch{return d}},
-  set:(k,v)=>{try{localStorage.setItem("copiloto_"+k,JSON.stringify(v))}catch{}},
+  get:(k,d)=>{try{const raw=AS?AS.getItem("copiloto_"+k):localStorage.getItem("copiloto_"+k);return raw?JSON.parse(raw):d}catch{return d}},
+  set:(k,v)=>{try{const s=JSON.stringify(v);if(AS)AS.setItem("copiloto_"+k,s);else localStorage.setItem("copiloto_"+k,s)}catch{}},
 };
 
 const PROVIDERS=[
@@ -643,14 +645,31 @@ function refreshStatus(){
 }
 
 /* ---------- Voz ---------- */
-function setupMic(btnSel,targetSel){
-  const btn=$(btnSel),SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+// La app de Android llama aquí con el texto reconocido (y el estado).
+let __voiceTarget=null,__voiceSend=null;
+window.copilotoVoice=function(text,state){
+  if(__voiceTarget){const el=$(__voiceTarget);if(el)el.value=text;}
+  if(state==="final"){document.querySelectorAll(".mic").forEach(b=>b.classList.remove("rec"));if(__voiceSend)__voiceSend();}
+  else if(state==="error"||state==="no-disponible"){document.querySelectorAll(".mic").forEach(b=>b.classList.remove("rec"));if(state==="no-disponible")toast("El reconocimiento de voz no está disponible en este teléfono.");}
+};
+function setupMic(btnSel,targetSel,onFinal){
+  const btn=$(btnSel);if(!btn)return;
+  // 1) App de Android: micrófono nativo (detecta la pausa y dispara solo).
+  if(window.AndroidSpeech){
+    btn.addEventListener("click",()=>{__voiceTarget=targetSel;__voiceSend=onFinal;btn.classList.add("rec");try{window.AndroidSpeech.start()}catch(e){btn.classList.remove("rec")}});
+    return;
+  }
+  // 2) Navegador normal: Web Speech API.
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if(!SR){btn.style.display="none";return}
   const rec=new SR();rec.lang="es-ES";rec.continuous=false;rec.interimResults=true;let on=false;
   btn.addEventListener("click",()=>{on?rec.stop():rec.start()});
   rec.onstart=()=>{on=true;btn.classList.add("rec")};
   rec.onend=()=>{on=false;btn.classList.remove("rec")};
-  rec.onresult=e=>{let t="";for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;$(targetSel).value=t};
+  rec.onresult=e=>{
+    let t="";for(let i=0;i<e.results.length;i++)t+=e.results[i][0].transcript;$(targetSel).value=t;
+    if(e.results[e.results.length-1].isFinal&&onFinal)onFinal();
+  };
 }
 
 /* ---------- Instalación PWA ---------- */
@@ -670,7 +689,8 @@ window.addEventListener("appinstalled",()=>toast("✓ Copiloto instalado"));
 })();
 
 /* ---------- Inicio ---------- */
-setupMic("#mic-btn","#chat-input");setupMic("#practice-mic","#practice-input");
+setupMic("#mic-btn","#chat-input",()=>sendChat());
+setupMic("#practice-mic","#practice-input",()=>$("#practice-send").click());
 refreshStatus();
 if(!aiReady()){addMsg("ai","¡Hola Kevin! 👋 Soy tu Copiloto. Funciono GRATIS sin clave: pregúntame lo que sea y busco la información en la web, te la paso, y abajo te dejo la fuente con un enlace para que entres y verifiques.\n\nSi algún día quieres que además converse y explique como profesor, puedes poner una clave de IA (Gemini es gratis) o usar Ollama en ⚙️ Ajustes. Pero no hace falta para empezar.")}
 </script>

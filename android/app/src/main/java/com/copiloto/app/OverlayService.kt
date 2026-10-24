@@ -150,8 +150,7 @@ class OverlayService : Service() {
         )
 
         val web = WebView(this)
-        web.settings.javaScriptEnabled = true
-        web.settings.domStorageEnabled = true
+        WebSupport.configure(this, web)
         web.loadUrl("file:///android_asset/index.html")
         val wlp = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT
