@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Copiloto</title>
+  <meta name="theme-color" content="#0b0f1a" />
+  <link rel="manifest" href="/manifest.json" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <!-- Burbuja de esquina (cuando está escondido) -->
+  <div id="bubble" class="hidden" title="Abrir Copiloto">✦</div>
+  <!-- Barra flotante (solo en la app de escritorio) -->
+  <div id="floatbar" class="hidden">
+    <span class="fb-title">✦ Copiloto</span>
+    <span class="fb-spacer"></span>
+    <button id="fb-tuck" title="Esconder en una esquina">◱</button>
+    <button id="fb-hide" title="Ocultar (Alt+Espacio)">—</button>
+    <button id="fb-close" title="Cerrar">✕</button>
+  </div>
+  <div id="app">
+    <!-- Barra lateral -->
+    <nav id="sidebar">
+      <div class="brand">
+        <div class="logo">✦</div>
+        <div class="brand-name">Copiloto</div>
+      </div>
+      <button class="nav-btn active" data-view="chat">💬 Copiloto</button>
+      <button class="nav-btn" data-view="docs">📄 Documentos</button>
+      <button class="nav-btn" data-view="practice">🎤 Práctica</button>
+      <button class="nav-btn" data-view="cards">🗂️ Flashcards</button>
+      <button class="nav-btn" data-view="history">🕘 Historial</button>
+      <button class="nav-btn" data-view="settings">⚙️ Ajustes</button>
+      <div class="nav-spacer"></div>
+      <div id="provider-pill" class="pill">Sin clave</div>
+    </nav>
+
+    <!-- Contenido -->
+    <main id="main">
+      <!-- COPILOTO / CHAT -->
+      <section class="view active" id="view-chat">
+        <header class="view-head">
+          <h1>Tu copiloto de estudio</h1>
+          <p class="sub">Pregúntame lo que sea: conceptos, cómo hacer un ensayo, pasos para un trabajo… te explico como un profesor.</p>
+        </header>
+        <div class="mode-row">
+          <label class="switch">
+            <input type="checkbox" id="use-docs" />
+            <span>📄 Mis documentos</span>
+          </label>
+          <label class="switch" style="margin-left:14px">
+            <input type="checkbox" id="use-web" checked />
+            <span>🌐 Buscar en la web (gratis)</span>
+          </label>
+        </div>
+        <div id="chat-log" class="chat-log"></div>
+        <div class="composer">
+          <textarea id="chat-input" rows="1" placeholder="Escribe tu pregunta…"></textarea>
+          <button id="mic-btn" title="Hablar">🎙️</button>
+          <button id="send-btn" class="primary">Enviar</button>
+        </div>
+      </section>
+
+      <!-- DOCUMENTOS -->
+      <section class="view" id="view-docs">
+        <header class="view-head"><h1>Documentos</h1>
+          <p class="sub">Sube tus PDFs, Word o notas de clase. El copiloto responderá basándose en ellos y citará la fuente.</p>
+        </header>
+        <label class="dropzone" id="dropzone">
+          <input type="file" id="file-input" accept=".pdf,.docx,.txt,.md" hidden />
+          <span>➕ Arrastra aquí o toca para subir (PDF, DOCX, TXT)</span>
+        </label>
+        <div id="doc-list" class="card-list"></div>
+      </section>
+
+      <!-- PRÁCTICA -->
+      <section class="view" id="view-practice">
+        <header class="view-head"><h1>Práctica de exposición / entrevista</h1>
+          <p class="sub">Responde por texto o voz. Recibes puntuación y retroalimentación sobre claridad, orden, muletillas y contenido.</p>
+        </header>
+        <div class="practice-controls">
+          <input id="practice-topic" placeholder="Tema (ej: ¿Qué es el espacio aéreo controlado?)" />
+          <button id="practice-start" class="primary">Nueva pregunta</button>
+        </div>
+        <div id="practice-question" class="question-box hidden"></div>
+        <div class="composer" id="practice-composer" style="display:none">
+          <textarea id="practice-input" rows="2" placeholder="Escribe o dicta tu respuesta…"></textarea>
+          <button id="practice-mic" title="Hablar">🎙️</button>
+          <button id="practice-send" class="primary">Evaluar</button>
+        </div>
+        <div id="practice-feedback" class="feedback-box"></div>
+      </section>
+
+      <!-- FLASHCARDS -->
+      <section class="view" id="view-cards">
+        <header class="view-head"><h1>Flashcards</h1>
+          <p class="sub">Genera tarjetas de estudio desde tus documentos y repásalas tocando para voltear.</p>
+        </header>
+        <div class="practice-controls">
+          <select id="cards-doc"></select>
+          <button id="cards-gen" class="primary">Generar</button>
+        </div>
+        <div id="cards-area" class="cards-area"></div>
+      </section>
+
+      <!-- HISTORIAL -->
+      <section class="view" id="view-history">
+        <header class="view-head"><h1>Historial</h1>
+          <p class="sub">Tus sesiones guardadas, localmente.</p>
+        </header>
+        <div id="history-list" class="card-list"></div>
+      </section>
+
+      <!-- AJUSTES -->
+      <section class="view" id="view-settings">
+        <header class="view-head"><h1>Ajustes</h1>
+          <p class="sub">Elige tu IA y pega tu clave. Se guarda cifrada en tu computadora. Nunca sale de aquí.</p>
+        </header>
+
+        <div class="settings-card">
+          <label>IA por defecto</label>
+          <select id="default-provider">
+            <option value="claude">Claude (Anthropic)</option>
+            <option value="openai">ChatGPT (OpenAI)</option>
+            <option value="gemini">Gemini (Google)</option>
+            <option value="grok">Grok (xAI)</option>
+            <option value="ollama">Ollama (local, gratis)</option>
+          </select>
+        </div>
+
+        <div id="keys-container"></div>
+
+        <div class="settings-card">
+          <label>URL de Ollama (si usas modelo local)</label>
+          <input id="ollama-url" placeholder="http://127.0.0.1:11434" />
+        </div>
+
+        <button id="save-settings" class="primary">Guardar ajustes</button>
+        <p class="hint" id="settings-hint"></p>
+      </section>
+    </main>
+  </div>
+
+  <div id="toast"></div>
+  <script src="/app.js"></script>
+</body>
+</html>

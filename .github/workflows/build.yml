@@ -1,0 +1,44 @@
+name: Build Copiloto
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Instalar dependencias
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r backend/requirements.txt
+          pip install pyinstaller pythonnet
+      - name: Compilar Copiloto.exe
+        run: >
+          pyinstaller --onefile --noconsole --name Copiloto
+          --add-data "ui;ui"
+          --collect-all uvicorn
+          --collect-all webview
+          --collect-all rapidfuzz
+          --collect-all keyboard
+          --collect-all clr_loader
+          launcher_float.py
+      - name: Subir el .exe como artefacto
+        uses: actions/upload-artifact@v4
+        with:
+          name: Copiloto-Windows
+          path: dist/Copiloto.exe
+      - name: Publicar en Releases (latest)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Copiloto (última versión)
+          files: dist/Copiloto.exe

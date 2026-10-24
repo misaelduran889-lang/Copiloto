@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+data/secret.key
+data/keys.vault
+data/copiloto.db
+data/index.json
+data/uploads/*
+data/app_profile/
+build/
+dist/
+*.spec
