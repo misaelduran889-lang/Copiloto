@@ -126,9 +126,7 @@ if __name__ == "__main__":
 
     sw, sh = _screen_size()
     api = Api()
-    window = webview.create_window(
-        "Copiloto",
-        URL,
+    base = dict(
         js_api=api,
         width=FULL[0], height=FULL[1],
         x=sw - FULL[0] - 30, y=60,     # arranca pegado a la derecha
@@ -136,9 +134,13 @@ if __name__ == "__main__":
         easy_drag=True,                # mover arrastrando
         on_top=True,                   # SIEMPRE ENCIMA
         resizable=True,
-        transparent=True,              # VIDRIO: se ve lo de atrás
-        background_color="#00000000",
+        background_color="#0B0F1A",    # color válido de respaldo (6 dígitos)
     )
+    try:
+        window = webview.create_window("Copiloto", URL, transparent=True, **base)
+    except Exception:
+        # Si el sistema no soporta transparencia, abrimos igual (sólido).
+        window = webview.create_window("Copiloto", URL, **base)
     api.window = window
     threading.Thread(target=setup_global_hotkey, args=(window,), daemon=True).start()
     webview.start()
