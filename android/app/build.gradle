@@ -12,8 +12,17 @@ android {
         versionCode 1
         versionName "1.0"
     }
+    signingConfigs {
+        copiloto {
+            storeFile file("../copiloto.keystore")
+            storePassword "copiloto123"
+            keyAlias "copiloto"
+            keyPassword "copiloto123"
+        }
+    }
     buildTypes {
-        release { minifyEnabled false }
+        debug { signingConfig signingConfigs.copiloto }
+        release { minifyEnabled false; signingConfig signingConfigs.copiloto }
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
